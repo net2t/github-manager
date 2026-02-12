@@ -1,126 +1,162 @@
 # Github Manager
 
-A Python tool for managing GitHub repositories and automating workflows following the global GitHub workflow instructions.
+A lightweight repo that contains:
 
-## Features
+- a **static web dashboard** (Netlify-ready) for browsing GitHub profile + repositories
+- a **Python CLI** (`github_manager.py`) that helps you manage repos and follow a commit workflow with a required smoke test
 
-- **Repository Management**: Status checking, creation, cloning
-- **Branch Operations**: Create, switch, merge, list branches
-- **Commit Workflow**: Enhanced commit with smoke testing, revert, reset
-- **Remote Operations**: Push, pull, remote management
-- **Stash Management**: Stash and apply changes
-- **History & Diff**: Commit history, file diffs, detailed status
-- **Smoke Testing**: Comprehensive repository validation
-- **GitHub CLI Integration**: Repository operations via GitHub CLI
+## Live site
 
-## Requirements
+[git-hub-manager.netlify.app](https://git-hub-manager.netlify.app)
 
-- Python 3.6+
-- Git
-- GitHub CLI (for repository operations)
+## Repository contents
 
-## Installation
+- **Web dashboard (static)**
+  - `github-manager-netlify.html` (main dashboard entry)
+  - `index.html` (backup / alternate entry)
+  - `netlify.toml` (Netlify publish + homepage redirect)
+- **Python CLI**
+  - `github_manager.py`
+  - `requirements.txt` (no required external deps)
 
-1. Clone this repository
-2. Install dependencies:
+## Prerequisites
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Git** installed and available on PATH
+- **Python 3.8+** recommended (3.6+ may work)
+- (Optional) **GitHub CLI** (`gh`) if you use features that rely on it
 
-## Usage
+## Quick start
 
-### Command Line Interface
+### 1) Clone
 
 ```bash
-# Repository Status
+git clone https://github.com/net2t/github-manager.git
+cd github-manager
+```
+
+### 2) Run the dashboard locally
+
+This is a static HTML file.
+
+- Open `github-manager-netlify.html` in your browser
+- Enter a GitHub Personal Access Token (PAT) when prompted
+
+If your browser blocks local fetch requests due to file URL restrictions, serve the folder with any static server (example with Python):
+
+```bash
+python -m http.server 8000
+```
+
+Then open:
+
+`http://localhost:8000/github-manager-netlify.html`
+
+### 3) Run the CLI smoke test
+
+```bash
+python github_manager.py smoke-test
+```
+
+## GitHub token (PAT) setup
+
+The dashboard calls GitHub’s API from your browser.
+
+1. Create a token on GitHub:
+   - Settings
+   - Developer settings
+   - Personal access tokens
+2. Recommended scopes:
+   - `repo` (if you want private repos)
+   - `read:user`
+3. Paste the token into the dashboard UI
+
+Security notes:
+
+- **Do not commit tokens** to this repository.
+- The dashboard may store the token in `localStorage` for convenience; use a separate browser profile if you want isolation.
+
+## Python CLI usage
+
+### Install (optional)
+
+This project is designed to run without external dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+### Common commands
+
+```bash
+# Repository status / branches
 python github_manager.py status
 python github_manager.py branches
 
-# Smoke Testing
+# Smoke testing (run before pushing changes)
 python github_manager.py smoke-test
 
-# Commit Operations
+# Commit workflow
 python github_manager.py commit "Your commit message"
 python github_manager.py revert
 python github_manager.py reset <commit-hash> [--hard]
 
-# Branch Management
+# Branch management
 python github_manager.py branch <branch-name>
 python github_manager.py checkout <branch-name>
 python github_manager.py merge <source-branch> [target-branch]
 
-# Remote Operations
+# Remote operations
 python github_manager.py push [branch-name]
 python github_manager.py pull [remote] [branch]
 python github_manager.py remote-add <name> <url>
 
-# Repository Operations
+# Repo operations
 python github_manager.py create-repo repo-name [--private]
 python github_manager.py clone repo-url [target-directory]
 
-# Stash Operations
+# Stash
 python github_manager.py stash [message]
 python github_manager.py stash-pop [index]
 
-# History & Diff
+# History & diff
 python github_manager.py history [limit]
 python github_manager.py diff [file-path]
 ```
 
-### Python API
+## Deployment (Netlify)
 
-```python
-from github_manager import GithubManager
+This repo is configured for static deploy.
 
-# Initialize manager
-manager = GithubManager("/path/to/repo")
+- **Publish directory**: `.` (repo root)
+- **Homepage**: `/` redirects to `/github-manager-netlify.html`
 
-# Repository status
-status = manager.get_repo_status()
-print(f"Current branch: {status['current_branch']}")
-print(f"Modified files: {status['modified_files']}")
+### Deploy from Git (recommended)
 
-# Branch operations
-manager.create_branch("feature-branch")
-manager.switch_branch("main")
-manager.merge_branch("feature-branch")
+1. Create a new site in Netlify
+2. Connect the GitHub repo
+3. Build settings:
+   - Build command: *(none)*
+   - Publish directory: `.`
 
-# Commit workflow
-if manager.smoke_test():
-    manager.commit_changes("Update files")
-    manager.push_to_github()
+### Deploy by drag & drop
 
-# Stash management
-manager.stash_changes("Work in progress")
-manager.stash_pop()
+You can also deploy by dragging the `github-manager-netlify.html` file (or the whole folder) into Netlify’s manual deploy.
 
-# History and diff
-history = manager.get_commit_history(5)
-diff = manager.get_file_diff("README.md")
+## Troubleshooting
 
-# Advanced operations
-manager.revert_last_commit()
-manager.reset_to_commit("abc123", hard=False)
-```
+### Dashboard shows API errors
 
-## Workflow Instructions
+- Confirm your PAT is valid
+- Confirm scopes (`read:user`, and `repo` if needed)
+- GitHub API is rate-limited; authenticated requests have higher limits
 
-Following the global GitHub workflow rules:
+### Local file doesn’t load data
 
-1. **All code changes must be committed** - Use the `commit` method before pushing
-2. **Smoke test requirement** - The `smoke_test()` method validates repository functionality
-3. **Direct pushing** - No pull request required after smoke test passes
-4. **Rollback plan** - Use `git revert` if issues are discovered
+Some browsers restrict network requests from `file://` pages.
 
-## Environment Setup
+- Use `python -m http.server` and open `http://localhost:8000/...`
 
-For new machines:
-1. Install Python
-2. Install VS Code
-3. Clone the repository:
+### CLI commands fail
 
-   ```bash
-   git clone https://github.com/your-username/your-repo.git
-   cd your-repo
-   ```
+- Ensure `git` is installed
+- Run `python github_manager.py smoke-test` to validate the environment
