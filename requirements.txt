@@ -1,0 +1,6 @@
+# Github Manager Requirements
+# No external dependencies required - uses built-in Python modules and system tools
+
+# Optional: For enhanced functionality
+# requests>=2.25.1  # For GitHub API interactions
+# click>=8.0.0      # For enhanced CLI interface
