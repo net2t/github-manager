@@ -20,6 +20,7 @@ A Python tool for managing GitHub repositories and automating workflows followin
 
 1. Clone this repository
 2. Install dependencies:
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -78,6 +79,7 @@ For new machines:
 1. Install Python
 2. Install VS Code
 3. Clone the repository:
+
    ```bash
    git clone https://github.com/your-username/your-repo.git
    cd your-repo
