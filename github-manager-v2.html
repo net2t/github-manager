@@ -584,8 +584,10 @@ let currentWorkflowRepo='', selectedRunId=null, allRunsData=[];
 let logPollInterval=null, currentLogTab='logs';
 
 // ============ OAUTH CONFIGURATION ============
-const GITHUB_CLIENT_ID = 'Iv1.9d1b3c7a8f2e6d4a'; // Demo Client ID - Replace with your actual GitHub OAuth App Client ID
+// Replace with your actual GitHub OAuth App Client ID
+const GITHUB_CLIENT_ID = 'Iv1.9d1b3c7a8f2e6d4a'; // Get this from: github.com/settings/applications/new
 const REDIRECT_URI = encodeURIComponent(window.location.origin + window.location.pathname);
+const OAUTH_BACKEND_URL = 'http://localhost:3000/oauth/github'; // Your backend OAuth endpoint
 
 // ============ AUTHENTICATION FUNCTIONS ============
 
@@ -626,39 +628,37 @@ function githubOAuthLogin() {
   const oauthError = document.getElementById('oauth-error');
   oauthError.style.display = 'none';
   
-  // For demo purposes, we'll simulate OAuth flow
-  // In production, replace GITHUB_CLIENT_ID with your actual GitHub OAuth App Client ID
-  if (GITHUB_CLIENT_ID.startsWith('Iv1.')) {
-    // Demo mode - simulate successful OAuth
+  // Check if Client ID is configured
+  if (!GITHUB_CLIENT_ID || GITHUB_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
     oauthError.innerHTML = `
-      <strong>Demo Mode:</strong><br>
-      This is a demo OAuth flow. In production:<br>
-      1. Create GitHub OAuth App at github.com/settings/applications/new<br>
-      2. Replace GITHUB_CLIENT_ID with your Client ID<br>
-      3. Set up backend for token exchange<br>
-      <br>
-      <small>Simulating successful login...</small>
+      <strong>Setup Required:</strong><br>
+      1. Create GitHub OAuth App: <a href="https://github.com/settings/applications/new" target="_blank">github.com/settings/applications/new</a><br>
+      2. Set Authorization callback URL: ${window.location.origin}${window.location.pathname}<br>
+      3. Replace GITHUB_CLIENT_ID in code with your Client ID<br>
+      4. Set up backend server for token exchange
     `;
     oauthError.style.display = 'block';
-    oauthError.style.borderColor = 'rgba(63,185,80,.3)';
-    oauthError.style.color = 'var(--accent2)';
-    
-    // Simulate successful login after 2 seconds
-    setTimeout(() => {
-      // Create a demo token for testing
-      TOKEN = 'ghp_demo_token_' + Math.random().toString(36).substring(7);
-      USER = {
-        login: 'demo-user',
-        name: 'Demo User',
-        avatar_url: 'https://github.com/github.png'
-      };
-      showApp();
-      showToast('Successfully logged in with demo credentials!', 'success');
-    }, 2000);
     return;
   }
   
-  // Construct GitHub OAuth URL for production
+  // Check if backend is configured
+  if (OAUTH_BACKEND_URL.includes('localhost:3000')) {
+    oauthError.innerHTML = `
+      <strong>Backend Required:</strong><br>
+      OAuth requires a backend server for token exchange.<br>
+      <br>
+      <strong>Quick Setup:</strong><br>
+      1. Install Node.js and run: <code>npm install express axios</code><br>
+      2. Create server.js (see code below)<br>
+      3. Run: <code>node server.js</code><br>
+      <br>
+      <small>Or use Personal Access Token method for immediate access</small>
+    `;
+    oauthError.style.display = 'block';
+    return;
+  }
+  
+  // Construct GitHub OAuth URL
   const authUrl = `https://github.com/login/oauth/authorize?` +
     `client_id=${GITHUB_CLIENT_ID}&` +
     `redirect_uri=${REDIRECT_URI}&` +
@@ -709,34 +709,63 @@ function handleOAuthCallback() {
 // Exchange authorization code for access token
 async function exchangeCodeForToken(code) {
   try {
-    // Note: This requires a backend server to handle token exchange
-    // For demo purposes, we'll show a message about backend requirement
     const oauthError = document.getElementById('oauth-error');
-    oauthError.innerHTML = `
-      <strong>Backend Required:</strong><br>
-      OAuth token exchange requires a backend server.<br>
-      Please use Personal Access Token method or set up OAuth backend.<br>
-      <small>Authorization code: ${code.substring(0, 20)}...</small>
-    `;
+    oauthError.innerHTML = '<strong>Exchanging code for token...</strong>';
     oauthError.style.display = 'block';
     
-    // For production, you would make a POST request to your backend:
-    // const response = await fetch('/your-backend/oauth/github', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ code, redirect_uri: decodeURIComponent(REDIRECT_URI) })
-    // });
-    // const data = await response.json();
-    // if (data.access_token) {
-    //   TOKEN = data.access_token;
-    //   await loadUser();
-    //   showApp();
-    // }
+    // Make POST request to backend for token exchange
+    const response = await fetch(OAUTH_BACKEND_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code: code,
+        redirect_uri: decodeURIComponent(REDIRECT_URI)
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.access_token) {
+      // Successfully got access token
+      TOKEN = data.access_token;
+      
+      // Load user information
+      USER = await ghFetch('/user');
+      
+      // Show main application
+      showApp();
+      showToast('Successfully logged in with GitHub!', 'success');
+      
+    } else {
+      throw new Error('No access token received from backend');
+    }
     
   } catch (error) {
-    document.getElementById('oauth-error').textContent = 'Token exchange failed: ' + error.message;
-    document.getElementById('oauth-error').style.display = 'block';
+    const oauthError = document.getElementById('oauth-error');
+    oauthError.innerHTML = `
+      <strong>Login Failed:</strong><br>
+      ${error.message}<br>
+      <br>
+      <small>Please check your backend server and try again.</small>
+    `;
+    oauthError.style.display = 'block';
   }
+}
+
+// Show main app after successful authentication
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-name').textContent = USER.name || USER.login;
+  document.getElementById('user-handle').textContent = '@' + USER.login;
+  document.getElementById('user-avatar').src = USER.avatar_url;
+  loadAllRepos();
 }
 
 // Check for OAuth callback on page load
