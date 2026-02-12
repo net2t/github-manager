@@ -454,7 +454,9 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--tex
             </div>
             <div class="trigger-field">
               <label>Branch / Ref</label>
-              <input type="text" id="trigger-ref" value="main" placeholder="main">
+              <select id="trigger-ref-branch" style="cursor:pointer">
+                <option value="">Default branch</option>
+              </select>
             </div>
             <button class="btn-sm btn-green" onclick="triggerWorkflow()" style="height:38px">▶ Run</button>
           </div>
@@ -784,7 +786,20 @@ async function ghFetch(url, opts={}) {
     ...opts,
     headers: { 'Authorization': `token ${TOKEN}`, 'Accept': 'application/vnd.github.v3+json', ...(opts.headers||{}) }
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let details = '';
+    try {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await res.json();
+        details = data && data.message ? ` - ${data.message}` : '';
+      } else {
+        const txt = await res.text();
+        details = txt ? ` - ${txt}` : '';
+      }
+    } catch(e) {}
+    throw new Error(`${res.status} ${res.statusText}${details}`);
+  }
   if (res.status === 204) return null;
   return res.json();
 }
@@ -981,7 +996,15 @@ async function loadWorkflowsList(repo) {
 async function triggerWorkflow() {
   const repo = currentWorkflowRepo;
   const wfId = document.getElementById('trigger-workflow-select').value;
-  const ref = document.getElementById('trigger-ref').value || 'main';
+  let ref = (document.getElementById('trigger-ref-branch') && document.getElementById('trigger-ref-branch').value) || '';
+  if(!ref) {
+    try {
+      const r = await ghFetch(`/repos/${repo}`);
+      ref = (r && r.default_branch) ? r.default_branch : 'main';
+    } catch(e) {
+      ref = 'main';
+    }
+  }
   if(!wfId){ showToast('Workflow select karein','error'); return; }
   try {
     await ghFetch(`/repos/${repo}/actions/workflows/${wfId}/dispatches`, {
@@ -990,7 +1013,14 @@ async function triggerWorkflow() {
     });
     showToast('✅ Workflow triggered! Thodi der mein list mein aayega.','success');
     setTimeout(loadWorkflows, 3000);
-  } catch(e){ showToast('Trigger error: '+e.message+' (workflow_dispatch event hona chahiye)','error'); }
+  } catch(e){
+    const m = String(e.message || '');
+    if (m.startsWith('403')) {
+      showToast('Trigger error: '+m+' (token ko Actions/Workflow permission chahiye + workflow me workflow_dispatch enabled hona chahiye)','error');
+      return;
+    }
+    showToast('Trigger error: '+m+' (workflow_dispatch event hona chahiye)','error');
+  }
 }
 
 async function loadWorkflows() {
