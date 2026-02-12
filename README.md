@@ -4,11 +4,14 @@ A Python tool for managing GitHub repositories and automating workflows followin
 
 ## Features
 
-- Repository status checking
-- Smoke testing before operations
-- Automated commit and push workflows
-- Repository creation and cloning
-- Integration with GitHub CLI
+- **Repository Management**: Status checking, creation, cloning
+- **Branch Operations**: Create, switch, merge, list branches
+- **Commit Workflow**: Enhanced commit with smoke testing, revert, reset
+- **Remote Operations**: Push, pull, remote management
+- **Stash Management**: Stash and apply changes
+- **History & Diff**: Commit history, file diffs, detailed status
+- **Smoke Testing**: Comprehensive repository validation
+- **GitHub CLI Integration**: Repository operations via GitHub CLI
 
 ## Requirements
 
@@ -30,23 +33,39 @@ A Python tool for managing GitHub repositories and automating workflows followin
 ### Command Line Interface
 
 ```bash
-# Check repository status
+# Repository Status
 python github_manager.py status
+python github_manager.py branches
 
-# Run smoke test
+# Smoke Testing
 python github_manager.py smoke-test
 
-# Commit changes
+# Commit Operations
 python github_manager.py commit "Your commit message"
+python github_manager.py revert
+python github_manager.py reset <commit-hash> [--hard]
 
-# Push to GitHub
+# Branch Management
+python github_manager.py branch <branch-name>
+python github_manager.py checkout <branch-name>
+python github_manager.py merge <source-branch> [target-branch]
+
+# Remote Operations
 python github_manager.py push [branch-name]
+python github_manager.py pull [remote] [branch]
+python github_manager.py remote-add <name> <url>
 
-# Create new repository
+# Repository Operations
 python github_manager.py create-repo repo-name [--private]
-
-# Clone repository
 python github_manager.py clone repo-url [target-directory]
+
+# Stash Operations
+python github_manager.py stash [message]
+python github_manager.py stash-pop [index]
+
+# History & Diff
+python github_manager.py history [limit]
+python github_manager.py diff [file-path]
 ```
 
 ### Python API
@@ -57,11 +76,32 @@ from github_manager import GithubManager
 # Initialize manager
 manager = GithubManager("/path/to/repo")
 
-# Run smoke test
+# Repository status
+status = manager.get_repo_status()
+print(f"Current branch: {status['current_branch']}")
+print(f"Modified files: {status['modified_files']}")
+
+# Branch operations
+manager.create_branch("feature-branch")
+manager.switch_branch("main")
+manager.merge_branch("feature-branch")
+
+# Commit workflow
 if manager.smoke_test():
-    # Commit and push changes
     manager.commit_changes("Update files")
     manager.push_to_github()
+
+# Stash management
+manager.stash_changes("Work in progress")
+manager.stash_pop()
+
+# History and diff
+history = manager.get_commit_history(5)
+diff = manager.get_file_diff("README.md")
+
+# Advanced operations
+manager.revert_last_commit()
+manager.reset_to_commit("abc123", hard=False)
 ```
 
 ## Workflow Instructions
