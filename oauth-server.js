@@ -12,8 +12,8 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-// GitHub OAuth Configuration
-const GITHUB_CLIENT_ID = 'Iv1.9d1b3c7a8f2e6d4a'; // Replace with your actual Client ID
+// GitHub OAuth Configuration for Damadam Dashboard
+const GITHUB_CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // Replace with your actual Client ID
 const GITHUB_CLIENT_SECRET = 'YOUR_CLIENT_SECRET_HERE'; // Replace with your actual Client Secret
 
 // Middleware
